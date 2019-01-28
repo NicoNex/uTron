@@ -1,30 +1,28 @@
-/*   uTron
-*    Copyright (C) 2019  Nicolò Santamaria
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation, either version 3 of the License, or
-*    (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU General Public License for more details.
-*
-*    You should have received a copy of the GNU General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/**
+ * uTron
+ * Copyright (C) 2019  Nicolò Santamaria
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <curl/curl.h>
 #include "network.h"
 
 
 static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
-	struct MemoryBuffer *mem = (struct MemoryBuffer *)userp;
+	struct memory_buffer_t *mem = (struct memory_buffer_t *)userp;
 
 	char *ptr = realloc(mem->memory, mem->size + realsize + 1);
 
@@ -42,11 +40,11 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, v
 }
 
 
-struct MemoryBuffer send_get_request(const char *url) {
+struct memory_buffer_t send_get_request(const char *url) {
 	CURL *curl_sessn;
 	CURLcode result;
 
-	struct MemoryBuffer buffer;
+	struct memory_buffer_t buffer;
 	buffer.memory = malloc(1);
 	buffer.size = 0;
 
@@ -55,7 +53,7 @@ struct MemoryBuffer send_get_request(const char *url) {
 	curl_sessn = curl_easy_init();
 
 	if (!curl_sessn) {
-		puts("failed to initialize curl session");
+		fputs("failed to initialize curl session\n", stderr);
 		goto END;
 	}
 
