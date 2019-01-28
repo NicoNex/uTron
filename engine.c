@@ -38,6 +38,25 @@ struct json_object* _send_message(struct engine_t *this, char *text, int64_t cha
 }
 
 
+struct json_object* _get_updates(struct engine_t *this, int timeout, int offset) {
+	struct json_object *response;
+	char *url = malloc(API_REQUEST_LEN);
+
+	snprintf(url, API_REQUEST_LEN, "%sgetUpdates?timeout=%d", this->base_url, timeout);
+
+	if (offset > 0)
+		snprintf(url, API_REQUEST_LEN, "%s&offset=%d", url, offset);
+
+	struct memory_buffer_t mb = send_get_request(url);
+	free(url);
+
+	response = json_tokener_parse(mb.memory);
+	free(mb.memory);
+
+	return response;
+}
+
+
 struct engine_t new_engine(const char *token) {
 	struct engine_t engine;
 	size_t base_url_size;
@@ -48,6 +67,7 @@ struct engine_t new_engine(const char *token) {
 	snprintf(engine.base_url, base_url_size, "%sbot%s/", API_URL, token);
 
 	engine.send_message = _send_message;
+	engine.get_updates = _get_updates;
 
 	return engine;
 }

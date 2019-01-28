@@ -30,6 +30,7 @@ struct engine_t {
 	char *base_url;
 
 	struct json_object* (*send_message) ();
+	struct json_object* (*get_updates) ();
 };
 
 struct engine_t new_engine(const char *);
