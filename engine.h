@@ -16,21 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
+#ifndef ENGINE_H_
+#define ENGINE_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdint.h>
+#include <json.h>
+#include <json_object.h>
+#include "network.h"
 
 
-struct memory_buffer_t {
-	char *memory;
-	size_t size;
+struct engine_t {
+	const char *token;
+	char *base_url;
+
+	struct json_object* (*send_message) ();
 };
 
+struct engine_t new_engine(const char *);
 
-struct memory_buffer_t send_get_request(const char*);
-
-
-#endif // NETWORK_H_
+#endif // ENGINE_H_
