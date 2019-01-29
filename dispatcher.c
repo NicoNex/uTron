@@ -45,6 +45,41 @@ _Bool is_response_ok(const struct json_object *response) {
 }
 
 
+_Bool get_session(int64_t chat_id, session_t *session) {
+	struct session_t *tmp_session = &sessions;
+
+	while (tmp_session != NULL) {
+		if (tmp_session->chat_id == chat_id) {
+			session = &tmp_session;
+			return 1;
+		}
+
+		else {
+			tmp_session = tmp_session->next;
+			continue;
+		}
+	}
+
+	return 0;
+}
+
+
+void append_new_session (int64_t chat_id, bot_t *bot) {
+	struct session_t *tmp_session = &sessions;
+
+	while (tmp_session != NULL)
+		tmp_session = tmp_session->next;
+
+	tmp_session->next = malloc(sizeof(session_t));
+
+	tmp_session->next = {
+		.chat_id = chat_id,
+		.bot = bot,
+		.next = NULL
+	};
+}
+
+
 void run_dispatcher() {
 	_Bool is_first_run = 0;
 	
@@ -54,6 +89,7 @@ void run_dispatcher() {
 	struct json_object *response;
 	struct json_object updates;
 	struct engine_t engine = new_engine(TOKEN);
+	struct session_t *session_tmp;
 
 	sessions = {
 		.chat_id = 0,
@@ -84,6 +120,16 @@ void run_dispatcher() {
 					continue;
 
 				// check whether json_object_get_int(chat_id) is in the list `sessions` 
+
+				if (get_session(json_object_get_int(chat_id), session_tmp)) {
+					// launch this in another thread
+					session_tmp->bot->update(update);
+					continue;
+				}
+
+				else {
+					// add code to create a new session here
+				}
 			}
 		}
 	}
