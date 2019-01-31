@@ -19,8 +19,6 @@
 #ifndef DISPATCHER_H_
 #define DISPATCHER_H_
 
-#include "engine.h"
-
 void run_dispatcher();
 
 #endif // DISPATCHER_H_
