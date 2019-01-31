@@ -47,16 +47,11 @@ _Bool is_response_ok(const struct json_object *response) {
 
 
 struct session_t *get_session(int64_t chat_id) {
-	puts("sus");
 	struct session_t *tmp_session = &sessions;
 
-	while (tmp_session != NULL) {
-		puts("seees");
-		printf("%ld %ld\n", chat_id, tmp_session->chat_id);
+	while (tmp_session->next != NULL) {
 		if (tmp_session->chat_id == chat_id)
 			return tmp_session;
-
-		printf("%ld\n", tmp_session->chat_id);
 
 		tmp_session = tmp_session->next;
 	}
@@ -66,22 +61,15 @@ struct session_t *get_session(int64_t chat_id) {
 
 
 void append_new_session(int64_t chat_id, struct bot_t *bot) {
-	puts("fif");
 	struct session_t *tmp_session = &sessions;
 
-	while (tmp_session != NULL)
+	while (tmp_session->next != NULL)
 		tmp_session = tmp_session->next;
 
 	tmp_session->next = malloc(sizeof(struct session_t));
 	tmp_session->next->chat_id = chat_id;
 	tmp_session->next->bot = bot;
 	tmp_session->next->next = NULL;
-
-	// tmp_session->next = &{
-	// 	.chat_id = chat_id,
-	// 	.bot = bot,
-	// 	.next = NULL
-	// };
 }
 
 
@@ -100,11 +88,6 @@ void run_dispatcher() {
 	session_tmp->bot = NULL;
 	session_tmp->next = NULL;
 
-	// sessions = &{
-	// 	.chat_id = 0,
-	// 	.bot = NULL,
-	// 	.next = NULL
-	// };
 
 	for (;;) {
 
@@ -126,26 +109,29 @@ void run_dispatcher() {
 
 				update = json_object_array_get_idx(updates, i);
 
-				if (!json_object_object_get_ex(update, "message", &message)
-						&& !json_object_object_get_ex(message, "chat", &chat)
-						&& !json_object_object_get_ex(chat, "id", &chat_id))
-
+				if (!json_object_object_get_ex(update, "message", &message))
 					continue;
 
-				// need to understand why json_object_get_int64(chat_id) is returning 0
+				if (!json_object_object_get_ex(message, "chat", &chat))
+					continue;
+
+				if (!json_object_object_get_ex(chat, "id", &chat_id))
+					continue;
+
+				if (!json_object_object_get_ex(update, "update_id", &update_id))
+					continue;
+
+				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
 				session_tmp = get_session(current_chat_id);
-				if (session_tmp) {
-					puts("sas");
+				if (session_tmp && !is_first_run) {
 					// launch this in another thread
-					session_tmp->bot->update(session_tmp->bot, &update);
+					session_tmp->bot->update(session_tmp->bot, update);
 					continue;
 				}
 
 				else {
-					puts("fif");
-					// add code to create a new session here
 					struct bot_t bot_tmp = new_bot(current_chat_id);
 					append_new_session(current_chat_id, &bot_tmp);
 				}
