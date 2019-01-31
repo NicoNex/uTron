@@ -64,7 +64,7 @@ struct memory_buffer_t send_get_request(const char *url) {
 	result = curl_easy_perform(curl_sessn);
 
 	if (result != CURLE_OK) {
-		fprintf(stderr, "request failed: %s", curl_easy_strerror(result));
+		fprintf(stderr, "request failed: %s\n", curl_easy_strerror(result));
 		goto END;
 	}
 

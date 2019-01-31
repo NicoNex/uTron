@@ -44,8 +44,12 @@ struct json_object* _get_updates(struct engine_t *this, int timeout, int offset)
 
 	snprintf(url, API_REQUEST_LEN, "%sgetUpdates?timeout=%d", this->base_url, timeout);
 
-	if (offset > 0)
-		snprintf(url, API_REQUEST_LEN, "%s&offset=%d", url, offset);
+	if (offset > 0) {
+		char *str_off = malloc(32);
+		snprintf(str_off, 32, "&offset=%d", offset);
+		strcat(url, str_off);
+		free(str_off);
+	}
 
 	struct memory_buffer_t mb = send_get_request(url);
 	free(url);
