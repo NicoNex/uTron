@@ -61,11 +61,11 @@ volatile struct session_t *get_session(int64_t chat_id) {
 }
 
 
-int append_new_session(int64_t chat_id, struct bot_t *bot) {
+uint32_t append_new_session(int64_t chat_id, struct bot_t *bot) {
 	volatile struct session_t *tmp_session = &sessions;
 
-	int i;
-	for (i = 0; tmp_session->next != NULL; i++)
+	uint32_t length;
+	for (length = 0; tmp_session->next != NULL; length++)
 		tmp_session = tmp_session->next;
 
 	
@@ -74,7 +74,7 @@ int append_new_session(int64_t chat_id, struct bot_t *bot) {
 	tmp_session->next->bot = bot;
 	tmp_session->next->next = NULL;
 
-	return i;
+	return ++length;
 }
 
 
