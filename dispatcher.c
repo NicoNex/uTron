@@ -70,6 +70,12 @@ uint32_t append_new_session(int64_t chat_id, struct bot_t *bot) {
 
 	
 	tmp_session->next = malloc(sizeof(struct session_t));
+
+	if (tmp_session->next == NULL) {
+		fputs("append_new_session: not enough memory (malloc returned NULL)\n", stderr);
+		return 0;
+	}
+
 	tmp_session->next->chat_id = chat_id;
 	tmp_session->next->bot = bot;
 	tmp_session->next->next = NULL;
@@ -126,6 +132,13 @@ void run_dispatcher() {
 				if (!json_object_object_get_ex(update, "update_id", &update_id))
 					continue; // may generate unexpected behaviour
 
+				// if (!json_object_object_get_ex(update, "message", &message)
+				// 		&& !json_object_object_get_ex(message, "chat", &chat)
+				// 		&& !json_object_object_get_ex(chat, "id", &chat_id)
+				// 		&& !json_object_object_get_ex(update, "update_id", &update_id))
+
+				// 	continue;
+
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
@@ -156,7 +169,8 @@ void run_dispatcher() {
 
 					else {
 						struct bot_t bot_tmp = new_bot(current_chat_id);
-						append_new_session(current_chat_id, &bot_tmp);
+						if(append_new_session(current_chat_id, &bot_tmp))
+							bot_tmp.update(&bot_tmp, update);
 					}
 				}
 			}
