@@ -46,30 +46,35 @@ _Bool is_response_ok(const struct json_object *response) {
 }
 
 
-struct session_t *get_session(int64_t chat_id) {
-	struct session_t *tmp_session = &sessions;
+volatile struct session_t *get_session(int64_t chat_id) {
+	volatile struct session_t *tmp_session = &sessions;
 
-	while (tmp_session->next != NULL) {
-		if (tmp_session->chat_id == chat_id)
-			return tmp_session;
+	while (tmp_session->chat_id != chat_id) {
+		if (tmp_session->next != NULL)
+			tmp_session = tmp_session->next;
 
-		tmp_session = tmp_session->next;
+		else
+			return NULL;
 	}
 
-	return NULL;
+	return tmp_session;
 }
 
 
-void append_new_session(int64_t chat_id, struct bot_t *bot) {
-	struct session_t *tmp_session = &sessions;
+int append_new_session(int64_t chat_id, struct bot_t *bot) {
+	volatile struct session_t *tmp_session = &sessions;
 
-	while (tmp_session->next != NULL)
+	int i;
+	for (i = 0; tmp_session->next != NULL; i++)
 		tmp_session = tmp_session->next;
 
+	
 	tmp_session->next = malloc(sizeof(struct session_t));
 	tmp_session->next->chat_id = chat_id;
 	tmp_session->next->bot = bot;
 	tmp_session->next->next = NULL;
+
+	return i;
 }
 
 
@@ -81,13 +86,13 @@ void run_dispatcher() {
 	
 	struct json_object *response;
 	struct json_object *updates;
-	struct engine_t engine = new_engine(TOKEN);
-	struct session_t *session_tmp = malloc(sizeof(struct session_t));
+	struct engine_t engine;
 
-	session_tmp->chat_id = 0;
-	session_tmp->bot = NULL;
-	session_tmp->next = NULL;
+	sessions.chat_id = 0;
+	sessions.bot = NULL;
+	sessions.next = NULL;
 
+	engine = new_engine(TOKEN);
 
 	for (;;) {
 
@@ -110,30 +115,49 @@ void run_dispatcher() {
 				update = json_object_array_get_idx(updates, i);
 
 				if (!json_object_object_get_ex(update, "message", &message))
-					continue;
+					continue; // may generate unexpected behaviour
 
 				if (!json_object_object_get_ex(message, "chat", &chat))
-					continue;
+					continue; // may generate unexpected behaviour
 
 				if (!json_object_object_get_ex(chat, "id", &chat_id))
-					continue;
+					continue; // may generate unexpected behaviour
 
 				if (!json_object_object_get_ex(update, "update_id", &update_id))
-					continue;
+					continue; // may generate unexpected behaviour
 
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
-				session_tmp = get_session(current_chat_id);
+				volatile struct session_t *session_tmp = get_session(current_chat_id);
 				if (session_tmp && !is_first_run) {
-					// launch this in another thread
 					session_tmp->bot->update(session_tmp->bot, update);
-					continue;
+
+					// struct update_arg_t uarg = {
+					// 	.bot = session_tmp->bot,
+					// 	.update = update
+					// };
+
+					// printf("%lu\n", &uarg);
+
+					// pthread_t thread_id;
+					// pthread_create(&thread_id, NULL, update_bot, (void *)&uarg);
+					// pthread_detach(thread_id);
 				}
 
 				else {
-					struct bot_t bot_tmp = new_bot(current_chat_id);
-					append_new_session(current_chat_id, &bot_tmp);
+					if (is_first_run) {
+						struct bot_t bot_tmp = new_bot(current_chat_id);
+						
+						sessions.chat_id = current_chat_id;
+						sessions.bot = &bot_tmp;
+						sessions.next = NULL;
+					}
+
+					else {
+						struct bot_t bot_tmp = new_bot(current_chat_id);
+						append_new_session(current_chat_id, &bot_tmp);
+					}
 				}
 			}
 			is_first_run = 0;
