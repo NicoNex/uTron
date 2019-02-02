@@ -169,7 +169,7 @@ void run_dispatcher() {
 
 					else {
 						struct bot_t bot_tmp = new_bot(current_chat_id);
-						if(append_new_session(current_chat_id, &bot_tmp))
+						if(append_new_session(current_chat_id, &bot_tmp) && !is_first_run)
 							bot_tmp.update(&bot_tmp, update);
 					}
 				}
