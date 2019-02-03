@@ -31,7 +31,7 @@ struct session_t {
 };
 
 
-volatile struct session_t sessions;
+volatile struct session_t sessions = {.chat_id = 0, .bot = NULL, .next = NULL};
 
 
 _Bool is_response_ok(const struct json_object *response) {
@@ -46,7 +46,7 @@ _Bool is_response_ok(const struct json_object *response) {
 }
 
 // deprecated
-uint32_t append_new_session(int64_t chat_id, struct bot_t *bot) {
+uint32_t append_new_session(int64_t chat_id) {
 	volatile struct session_t *tmp_session = &sessions;
 
 	uint32_t length;
@@ -62,7 +62,7 @@ uint32_t append_new_session(int64_t chat_id, struct bot_t *bot) {
 	}
 
 	tmp_session->next->chat_id = chat_id;
-	tmp_session->next->bot = bot;
+	tmp_session->next->bot = new_bot(chat_id);
 	tmp_session->next->next = NULL;
 
 	return ++length;
@@ -118,10 +118,6 @@ void run_dispatcher() {
 	struct json_object *updates;
 	struct engine_t engine;
 
-	sessions.chat_id = 0;
-	sessions.bot = NULL;
-	sessions.next = NULL;
-
 	engine = new_engine(TOKEN);
 
 	for (;;) {
@@ -159,12 +155,12 @@ void run_dispatcher() {
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
-				volatile struct session_t *session_tmp = get_session_ptr(current_chat_id);
-				if (session_tmp && !is_first_run) {
-					session_tmp->bot->update(session_tmp->bot, update);
+				volatile struct session_t *session_ptr = get_session_ptr(current_chat_id);
+				if (session_ptr && !is_first_run) {
+					session_ptr->bot->update(session_ptr->bot, update);
 
 					// struct update_arg_t uarg = {
-					// 	.bot = session_tmp->bot,
+					// 	.bot = session_ptr->bot,
 					// 	.update = update
 					// };
 
