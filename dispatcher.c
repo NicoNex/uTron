@@ -26,6 +26,7 @@
 
 struct session_t {
 	int64_t chat_id;
+	time_t timestamp;
 	struct bot_t* bot;
 	struct session_t* next;
 };
@@ -77,7 +78,7 @@ void populate_session(volatile struct session_t *session_ptr, int64_t chat_id) {
 	}
 
 	else
-		fprintf(stderr, "populate_session: not enough memory (malloc returned NULL)\n");
+		fputs("populate_session: not enough memory (malloc returned NULL)\n", stderr);
 }
 
 
@@ -157,18 +158,19 @@ void run_dispatcher() {
 
 				volatile struct session_t *session_ptr = get_session_ptr(current_chat_id);
 				if (session_ptr && !is_first_run) {
-					session_ptr->bot->update(session_ptr->bot, update);
+					session_ptr->timestamp = time(NULL);
+					// session_ptr->bot->update(session_ptr->bot, update);
 
-					// struct update_arg_t uarg = {
-					// 	.bot = session_ptr->bot,
-					// 	.update = update
-					// };
+					struct update_arg_t uarg = {
+						.bot = session_ptr->bot,
+						.update = update
+					};
 
-					// printf("%lu\n", &uarg);
+					printf("%lu\n", &uarg);
 
-					// pthread_t thread_id;
-					// pthread_create(&thread_id, NULL, update_bot, (void *)&uarg);
-					// pthread_detach(thread_id);
+					pthread_t thread_id;
+					pthread_create(&thread_id, NULL, update_bot, (void *)&uarg);
+					pthread_detach(thread_id);
 				}
 			}
 			is_first_run = 0;
