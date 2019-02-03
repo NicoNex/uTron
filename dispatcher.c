@@ -166,8 +166,6 @@ void run_dispatcher() {
 						.update = update
 					};
 
-					printf("%lu\n", &uarg);
-
 					pthread_t thread_id;
 					pthread_create(&thread_id, NULL, update_bot, (void *)&uarg);
 					pthread_detach(thread_id);
