@@ -141,16 +141,16 @@ void run_dispatcher() {
 				update = json_object_array_get_idx(updates, i);
 
 				if (!json_object_object_get_ex(update, "message", &message))
-					continue; // may generate unexpected behaviour
+					continue;
 
 				if (!json_object_object_get_ex(message, "chat", &chat))
-					continue; // may generate unexpected behaviour
+					continue;
 
 				if (!json_object_object_get_ex(chat, "id", &chat_id))
-					continue; // may generate unexpected behaviour
+					continue;
 
 				if (!json_object_object_get_ex(update, "update_id", &update_id))
-					continue; // may generate unexpected behaviour
+					continue;
 
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
@@ -160,7 +160,7 @@ void run_dispatcher() {
 					session_ptr->timestamp = time(NULL);
 					// session_ptr->bot_ptr->update(session_ptr->bot_ptr, update);
 
-					struct update_arg uarg = {
+					struct bot_update_arg uarg = {
 						.bot_ptr = session_ptr->bot_ptr,
 						.update = update
 					};
