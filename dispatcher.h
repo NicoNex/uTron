@@ -19,6 +19,11 @@
 #ifndef DISPATCHER_H_
 #define DISPATCHER_H_
 
+struct bot_update_arg {
+	struct bot *bot_ptr;
+	struct json_object *update;
+};
+
 void run_dispatcher();
 
 #endif // DISPATCHER_H_
