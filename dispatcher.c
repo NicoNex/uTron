@@ -24,15 +24,15 @@
 #include "dispatcher.h"
 
 
-struct session_t {
+struct session {
 	int64_t chat_id;
 	time_t timestamp;
-	struct bot_t* bot;
-	struct session_t* next;
+	struct bot* bot_ptr;
+	struct session* next;
 };
 
 
-volatile struct session_t sessions = {.chat_id = 0, .bot = NULL, .next = NULL};
+volatile struct session session_list = {.chat_id = 0, .bot_ptr = NULL, .next = NULL};
 
 
 _Bool is_response_ok(const struct json_object *response) {
@@ -48,14 +48,14 @@ _Bool is_response_ok(const struct json_object *response) {
 
 // deprecated
 uint32_t append_new_session(int64_t chat_id) {
-	volatile struct session_t *tmp_session = &sessions;
+	volatile struct session *tmp_session = &session_list;
 
 	uint32_t length;
 	for (length = 0; tmp_session->next != NULL; length++)
 		tmp_session = tmp_session->next;
 
 	
-	tmp_session->next = malloc(sizeof(struct session_t));
+	tmp_session->next = malloc(sizeof(struct session));
 
 	if (tmp_session->next == NULL) {
 		fputs("append_new_session: not enough memory (malloc returned NULL)\n", stderr);
@@ -63,17 +63,17 @@ uint32_t append_new_session(int64_t chat_id) {
 	}
 
 	tmp_session->next->chat_id = chat_id;
-	tmp_session->next->bot = new_bot(chat_id);
+	tmp_session->next->bot_ptr = new_bot(chat_id);
 	tmp_session->next->next = NULL;
 
 	return ++length;
 }
 
 
-void populate_session(volatile struct session_t *session_ptr, int64_t chat_id) {
+void populate_session(volatile struct session *session_ptr, int64_t chat_id) {
 	if (session_ptr != NULL) {
 		session_ptr->chat_id = chat_id;
-		session_ptr->bot = new_bot(chat_id);
+		session_ptr->bot_ptr = new_bot(chat_id);
 		session_ptr->next = NULL;
 	}
 
@@ -82,8 +82,8 @@ void populate_session(volatile struct session_t *session_ptr, int64_t chat_id) {
 }
 
 
-volatile struct session_t *get_session_ptr(int64_t chat_id) {
-	volatile struct session_t *session_ptr = &sessions;
+volatile struct session *get_session_ptr(int64_t chat_id) {
+	volatile struct session *session_ptr = &session_list;
 	int i = 0;
 
 	while (session_ptr->chat_id != chat_id) {
@@ -92,7 +92,7 @@ volatile struct session_t *get_session_ptr(int64_t chat_id) {
 
 		else {
 			if (i > 0) {
-				session_ptr->next = malloc(sizeof(struct session_t));
+				session_ptr->next = malloc(sizeof(struct session));
 				populate_session(session_ptr->next, chat_id);
 				return session_ptr->next;
 			}
@@ -117,16 +117,15 @@ void run_dispatcher() {
 	
 	struct json_object *response;
 	struct json_object *updates;
-	struct engine_t engine;
 
-	engine = new_engine(TOKEN);
+	init_engine(TOKEN);
 
 	for (;;) {
 
 		if (!is_first_run)
-			response = engine.get_updates(&engine, 120, last_update_id+1);
+			response = tg_get_updates(20, last_update_id+1);
 		else
-			response = engine.get_updates(&engine, 0, 0);
+			response = tg_get_updates(0, 0);
 
 		if (is_response_ok(response)) {
 
@@ -156,13 +155,13 @@ void run_dispatcher() {
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
-				volatile struct session_t *session_ptr = get_session_ptr(current_chat_id);
+				volatile struct session *session_ptr = get_session_ptr(current_chat_id);
 				if (session_ptr && !is_first_run) {
 					session_ptr->timestamp = time(NULL);
-					// session_ptr->bot->update(session_ptr->bot, update);
+					// session_ptr->bot_ptr->update(session_ptr->bot_ptr, update);
 
-					struct update_arg_t uarg = {
-						.bot = session_ptr->bot,
+					struct update_arg uarg = {
+						.bot_ptr = session_ptr->bot_ptr,
 						.update = update
 					};
 

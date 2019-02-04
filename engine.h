@@ -19,20 +19,17 @@
 #ifndef ENGINE_H_
 #define ENGINE_H_
 
+#include <stdio.h>
 #include <stdint.h>
 #include <json.h>
 #include <json_object.h>
-#include "network.h"
 
 
-struct engine_t {
-	const char *token;
-	char *base_url;
+struct json_object *tg_get_updates(int, int);
 
-	struct json_object* (*send_message) ();
-	struct json_object* (*get_updates) ();
-};
+struct json_object *tg_send_message(char *, int64_t);
 
-struct engine_t new_engine(const char *);
+void init_engine(const char *);
+
 
 #endif // ENGINE_H_
