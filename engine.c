@@ -17,17 +17,21 @@
  */
 
 #include "engine.h"
+#include "network.h"
 
 
 #define API_URL "https://api.telegram.org/"
 #define API_REQUEST_LEN 4096
 
 
-struct json_object* _send_message(struct engine_t *this, char *text, int64_t chat_id) {
+static char *base_url;
+
+
+struct json_object *tg_send_message(char *text, int64_t chat_id) {
 	struct json_object *response;
 	char *url = malloc(API_REQUEST_LEN);
 
-	snprintf(url, API_REQUEST_LEN, "%ssendMessage?text=%s&chat_id=%ld&parse_mode=markdown", this->base_url, text, chat_id);
+	snprintf(url, API_REQUEST_LEN, "%ssendMessage?text=%s&chat_id=%ld&parse_mode=markdown", base_url, text, chat_id);
 	struct memory_buffer_t mb = send_get_request(url);
 	free(url);
 
@@ -38,11 +42,11 @@ struct json_object* _send_message(struct engine_t *this, char *text, int64_t cha
 }
 
 
-struct json_object* _get_updates(struct engine_t *this, int timeout, int offset) {
+struct json_object *tg_get_updates(int timeout, int offset) {
 	struct json_object *response;
 	char *url = malloc(API_REQUEST_LEN);
 
-	snprintf(url, API_REQUEST_LEN, "%sgetUpdates?timeout=%d", this->base_url, timeout);
+	snprintf(url, API_REQUEST_LEN, "%sgetUpdates?timeout=%d", base_url, timeout);
 
 	if (offset > 0) {
 		char *str_off = malloc(32);
@@ -61,17 +65,10 @@ struct json_object* _get_updates(struct engine_t *this, int timeout, int offset)
 }
 
 
-struct engine_t new_engine(const char *token) {
-	struct engine_t engine;
+void init_engine(const char *token) {
 	size_t base_url_size;
 
-	engine.token = token;
-	base_url_size = sizeof(API_URL) + strlen(token) + 4;
-	engine.base_url = malloc(base_url_size);
-	snprintf(engine.base_url, base_url_size, "%sbot%s/", API_URL, token);
-
-	engine.send_message = _send_message;
-	engine.get_updates = _get_updates;
-
-	return engine;
+	base_url_size = strlen(API_URL) + strlen(token) + 5;
+	base_url = malloc(base_url_size);
+	snprintf(base_url, base_url_size, "%sbot%s/", API_URL, token);
 }
