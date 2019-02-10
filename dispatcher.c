@@ -24,6 +24,9 @@
 #include "dispatcher.h"
 
 
+#define CACHE_LEN 20
+
+
 struct session {
 	int64_t chat_id;
 	time_t timestamp;
@@ -33,6 +36,17 @@ struct session {
 
 
 volatile struct session session_list = {.chat_id = 0, .bot_ptr = NULL, .next = NULL};
+volatile struct session *session_cache[CACHE_LEN];
+
+
+int hash_code(int64_t chat_id) {
+	return chat_id % CACHE_LEN;
+}
+
+
+void update_cache(int64_t chat_id, volatile struct session_ptr*) {
+	session_cache[hash_code(chat_id)] = session_ptr;
+}
 
 
 _Bool is_response_ok(const struct json_object *response) {
@@ -48,63 +62,74 @@ _Bool is_response_ok(const struct json_object *response) {
 
 // deprecated
 uint32_t append_new_session(int64_t chat_id) {
-	volatile struct session *tmp_session = &session_list;
+	volatile struct session *session_ptr = &session_list;
 
 	uint32_t length;
-	for (length = 0; tmp_session->next != NULL; length++)
-		tmp_session = tmp_session->next;
+	for (length = 0; session_ptr->next != NULL; length++)
+		session_ptr = session_ptr->next;
 
 	
-	tmp_session->next = malloc(sizeof(struct session));
+	session_ptr->next = malloc(sizeof(struct session));
 
-	if (tmp_session->next == NULL) {
+	if (session_ptr->next == NULL) {
 		fputs("append_new_session: not enough memory (malloc returned NULL)\n", stderr);
 		return 0;
 	}
 
-	tmp_session->next->chat_id = chat_id;
-	tmp_session->next->bot_ptr = new_bot(chat_id);
-	tmp_session->next->next = NULL;
+	session_ptr->next->chat_id = chat_id;
+	session_ptr->next->bot_ptr = new_bot(chat_id);
+	session_ptr->next->next = NULL;
 
 	return ++length;
 }
 
 
-void populate_session(volatile struct session *session_ptr, int64_t chat_id) {
+int populate_session(volatile struct session *session_ptr, int64_t chat_id) {
 	if (session_ptr != NULL) {
 		session_ptr->chat_id = chat_id;
 		session_ptr->bot_ptr = new_bot(chat_id);
 		session_ptr->next = NULL;
+		return 0;
 	}
 
-	else
+	else {
 		fputs("populate_session: not enough memory (malloc returned NULL)\n", stderr);
+		return 1;
+	}
 }
 
 
 volatile struct session *get_session_ptr(int64_t chat_id) {
-	volatile struct session *session_ptr = &session_list;
-	int i = 0;
+	volatile struct session *session_ptr = session_cache[hash_code(chat_id)];
 
-	while (session_ptr->chat_id != chat_id) {
-		if (session_ptr->next != NULL)
-			session_ptr = session_ptr->next;
+	if (session_ptr->chat_id == chat_id)
+		return session_ptr;
 
-		else {
-			if (i > 0) {
-				session_ptr->next = malloc(sizeof(struct session));
-				populate_session(session_ptr->next, chat_id);
-				return session_ptr->next;
-			}
+	else {
+		session_ptr = &session_list;
+
+		for (int i = 0; session_ptr->chat_id != chat_id; i++) {
+			if (session_ptr->next != NULL)
+				session_ptr = session_ptr->next;
 
 			else {
-				populate_session(session_ptr, chat_id);
-				return session_ptr;
+				if (i > 0) {
+					session_ptr->next = malloc(sizeof(struct session));
+					populate_session(session_ptr->next, chat_id);
+					session_ptr = session_ptr->next;
+					goto update_cache_and_return;
+				}
+
+				else {
+					populate_session(session_ptr, chat_id);
+					goto update_cache_and_return;
+				}
 			}
 		}
-		i++;
 	}
 
+update_cache_and_return:
+	update_cache(chat_id, session_ptr);
 	return session_ptr;
 }
 
