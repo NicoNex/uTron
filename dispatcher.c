@@ -36,7 +36,7 @@ struct session {
 
 
 volatile struct session session_list = {.chat_id = 0, .bot_ptr = NULL, .next = NULL};
-volatile struct session *session_cache[CACHE_LEN];
+volatile struct session *session_cache[CACHE_LEN] = {NULL};
 
 
 int hash_code(int64_t chat_id) {
@@ -44,7 +44,7 @@ int hash_code(int64_t chat_id) {
 }
 
 
-void update_cache(int64_t chat_id, volatile struct session_ptr*) {
+void update_cache(int64_t chat_id, volatile struct session *session_ptr) {
 	session_cache[hash_code(chat_id)] = session_ptr;
 }
 
@@ -58,29 +58,6 @@ _Bool is_response_ok(const struct json_object *response) {
 		return 0;
 
 	return json_object_get_boolean(ok);
-}
-
-// deprecated
-uint32_t append_new_session(int64_t chat_id) {
-	volatile struct session *session_ptr = &session_list;
-
-	uint32_t length;
-	for (length = 0; session_ptr->next != NULL; length++)
-		session_ptr = session_ptr->next;
-
-	
-	session_ptr->next = malloc(sizeof(struct session));
-
-	if (session_ptr->next == NULL) {
-		fputs("append_new_session: not enough memory (malloc returned NULL)\n", stderr);
-		return 0;
-	}
-
-	session_ptr->next->chat_id = chat_id;
-	session_ptr->next->bot_ptr = new_bot(chat_id);
-	session_ptr->next->next = NULL;
-
-	return ++length;
 }
 
 
@@ -102,33 +79,29 @@ int populate_session(volatile struct session *session_ptr, int64_t chat_id) {
 volatile struct session *get_session_ptr(int64_t chat_id) {
 	volatile struct session *session_ptr = session_cache[hash_code(chat_id)];
 
-	if (session_ptr->chat_id == chat_id)
+	if (session_ptr != NULL && session_ptr->chat_id == chat_id)
 		return session_ptr;
 
-	else {
-		session_ptr = &session_list;
+	session_ptr = &session_list;
+	
+	for (int i = 0; session_ptr->chat_id != chat_id; i++) {
+		if (session_ptr->next != NULL)
+			session_ptr = session_ptr->next;
 
-		for (int i = 0; session_ptr->chat_id != chat_id; i++) {
-			if (session_ptr->next != NULL)
+		else {
+			if (i > 0) {
+				session_ptr->next = malloc(sizeof(struct session));
+				populate_session(session_ptr->next, chat_id);
 				session_ptr = session_ptr->next;
-
-			else {
-				if (i > 0) {
-					session_ptr->next = malloc(sizeof(struct session));
-					populate_session(session_ptr->next, chat_id);
-					session_ptr = session_ptr->next;
-					goto update_cache_and_return;
-				}
-
-				else {
-					populate_session(session_ptr, chat_id);
-					goto update_cache_and_return;
-				}
 			}
+
+			else
+				populate_session(session_ptr, chat_id);
+
+			break;
 		}
 	}
 
-update_cache_and_return:
 	update_cache(chat_id, session_ptr);
 	return session_ptr;
 }
@@ -183,7 +156,6 @@ void run_dispatcher() {
 				volatile struct session *session_ptr = get_session_ptr(current_chat_id);
 				if (session_ptr && !is_first_run) {
 					session_ptr->timestamp = time(NULL);
-					// session_ptr->bot_ptr->update(session_ptr->bot_ptr, update);
 
 					struct bot_update_arg uarg = {
 						.bot_ptr = session_ptr->bot_ptr,
