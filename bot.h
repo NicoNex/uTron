@@ -16,21 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifndef BOT_H_
+#define BOT_H_
 
 
-struct memory_buffer_t {
-	char *memory;
-	size_t size;
+struct bot;
+
+struct bot_update_arg {
+	struct bot *bot_ptr;
+	struct json_object *update;
 };
 
 
-struct memory_buffer_t send_get_request(const char*);
+volatile struct bot *new_bot(int64_t);
+void *update_bot(void*);
 
 
-#endif // NETWORK_H_
+#endif // BOT_H_
