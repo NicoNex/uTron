@@ -1,4 +1,4 @@
-/**
+/*
  * uTron
  * Copyright (C) 2019  Nicolò Santamaria
  *
@@ -20,7 +20,7 @@
 #include <time.h>
 #include <pthread.h>
 #include "engine.h"
-#include "../bot.h"
+#include "bot.h"
 #include "dispatcher.h"
 
 
@@ -30,13 +30,13 @@
 struct session {
 	int64_t chat_id;
 	time_t timestamp;
-	struct bot* bot_ptr;
+	volatile struct bot* bot_ptr;
 	struct session* next;
 };
 
 
-volatile struct session session_list = {.chat_id = 0, .bot_ptr = NULL, .next = NULL};
-volatile struct session *session_cache[CACHE_LEN] = {NULL};
+struct session session_list = {.chat_id = 0, .bot_ptr = NULL, .next = NULL};
+struct session *session_cache[CACHE_LEN] = {NULL};
 
 
 int hash_code(int64_t chat_id) {
@@ -44,7 +44,7 @@ int hash_code(int64_t chat_id) {
 }
 
 
-void update_cache(int64_t chat_id, volatile struct session *session_ptr) {
+void update_cache(int64_t chat_id, struct session *session_ptr) {
 	session_cache[hash_code(chat_id)] = session_ptr;
 }
 
@@ -61,7 +61,7 @@ _Bool is_response_ok(const struct json_object *response) {
 }
 
 
-int populate_session(volatile struct session *session_ptr, int64_t chat_id) {
+int populate_session(struct session *session_ptr, int64_t chat_id) {
 	if (session_ptr != NULL) {
 		session_ptr->chat_id = chat_id;
 		session_ptr->bot_ptr = new_bot(chat_id);
@@ -76,8 +76,8 @@ int populate_session(volatile struct session *session_ptr, int64_t chat_id) {
 }
 
 
-volatile struct session *get_session_ptr(int64_t chat_id) {
-	volatile struct session *session_ptr = session_cache[hash_code(chat_id)];
+struct session *get_session_ptr(int64_t chat_id) {
+	struct session *session_ptr = session_cache[hash_code(chat_id)];
 
 	if (session_ptr != NULL && session_ptr->chat_id == chat_id)
 		return session_ptr;
@@ -107,7 +107,7 @@ volatile struct session *get_session_ptr(int64_t chat_id) {
 }
 
 
-void run_dispatcher() {
+void run_dispatcher(const char *token) {
 	_Bool is_first_run = 0;
 	
 	int last_update_id = 0;
@@ -116,7 +116,7 @@ void run_dispatcher() {
 	struct json_object *response;
 	struct json_object *updates;
 
-	init_engine(TOKEN);
+	init_engine(token);
 
 	for (;;) {
 
@@ -153,7 +153,7 @@ void run_dispatcher() {
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
-				volatile struct session *session_ptr = get_session_ptr(current_chat_id);
+				struct session *session_ptr = get_session_ptr(current_chat_id);
 				if (session_ptr && !is_first_run) {
 					session_ptr->timestamp = time(NULL);
 
