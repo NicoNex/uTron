@@ -28,7 +28,7 @@ struct bot_update_arg {
 };
 
 
-volatile struct bot *new_bot(int64_t);
+struct bot *new_bot(int64_t);
 void *update_bot(void*);
 
 
