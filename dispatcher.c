@@ -30,7 +30,7 @@
 struct session {
 	int64_t chat_id;
 	time_t timestamp;
-	volatile struct bot* bot_ptr;
+	struct bot* bot_ptr;
 	struct session* next;
 };
 
