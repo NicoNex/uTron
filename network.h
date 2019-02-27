@@ -24,13 +24,13 @@
 #include <string.h>
 
 
-struct memory_buffer_t {
+struct memory_buffer {
 	char *memory;
 	size_t size;
 };
 
 
-struct memory_buffer_t send_get_request(const char*);
+struct memory_buffer send_get_request(const char*);
 
 
 #endif // NETWORK_H_

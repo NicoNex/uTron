@@ -25,7 +25,7 @@
 
 static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
-	struct memory_buffer_t *mem = (struct memory_buffer_t *)userp;
+	struct memory_buffer *mem = (struct memory_buffer *)userp;
 
 	char *ptr = realloc(mem->memory, mem->size + realsize + 1);
 
@@ -43,36 +43,97 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, v
 }
 
 
-struct memory_buffer_t send_get_request(const char *url) {
-	CURL *curl_sessn;
+struct memory_buffer send_get_request(const char *url) {
+	CURL *curl;
 	CURLcode result;
 
-	struct memory_buffer_t buffer;
+	struct memory_buffer buffer;
 	buffer.memory = malloc(1);
 	buffer.size = 0;
 
 	curl_global_init(CURL_GLOBAL_ALL);
 	
-	curl_sessn = curl_easy_init();
+	curl = curl_easy_init();
 
-	if (!curl_sessn) {
+	if (curl) {
 		fputs("failed to initialize curl session\n", stderr);
-		goto END;
+
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&buffer);
+		result = curl_easy_perform(curl);
+
+		if (result != CURLE_OK)
+			fprintf(stderr, "request failed: %s\n", curl_easy_strerror(result));
+
+		curl_easy_cleanup(curl);
+		curl_global_cleanup();
 	}
 
-	curl_easy_setopt(curl_sessn, CURLOPT_URL, url);
-	curl_easy_setopt(curl_sessn, CURLOPT_WRITEFUNCTION, write_memory_callback);
-	curl_easy_setopt(curl_sessn, CURLOPT_WRITEDATA, (void *)&buffer);
-	result = curl_easy_perform(curl_sessn);
+	return buffer;
+}
 
-	if (result != CURLE_OK) {
-		fprintf(stderr, "request failed: %s\n", curl_easy_strerror(result));
-		goto END;
+
+struct memory_buffer send_post_request(const char *url, const char *filepath, const char *filename) {
+	CURL *curl;
+	CURLcode result;
+
+	FILE *fp;
+
+	curl_mime *form = NULL;
+	curl_mimepart *field = NULL;
+	struct curl_slist *headerlist = NULL;
+	static const char tmp[] = "Expect:";
+
+	struct memory_buffer buffer;
+	buffer.memory = malloc(1);
+	buffer.size = 0;
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	curl = curl_easy_init();
+
+	if (curl) {
+		form = curl_mime_init(curl);
+
+		field = curl_mime_addpart(form);
+		curl_mime_name(field, "filename");
+		curl_mime_filedata(field, filename);
+
+		fp = fopen(filepath, "rb");
+		fseek(fp, 0, SEEK_END);
+		long flen = ftell(fp);
+		char *filedata = malloc(flen);
+		fseek(fp, 0, SEEK_SET);
+		fread(filedata, 1, flen, fp);
+		fclose(fp);
+
+		field = curl_mime_addpart(form);
+		curl_mime_name(field, "filename");
+		curl_mime_data(field, filedata, CURL_ZERO_TERMINATED);
+
+		free(filedata);
+
+		field = curl_mime_addpart(form);
+		curl_mime_name(field, "submit");
+		curl_mime_data(field, "send", CURL_ZERO_TERMINATED);
+
+		headerlist = curl_slist_append(headerlist, tmp);
+
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&buffer);
+
+		result = curl_easy_perform(curl);
+
+		if (result != CURLE_OK)
+			fprintf(stderr, "request failed: %s\n", curl_easy_strerror(result));
+
+		curl_easy_cleanup(curl);
+		curl_mime_free(form);
+		curl_slist_free_all(headerlist);
 	}
 
-
-END:
-	curl_easy_cleanup(curl_sessn);
-	curl_global_cleanup();
 	return buffer;
 }

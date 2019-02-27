@@ -32,7 +32,7 @@ struct json_object *tg_send_message(char *text, int64_t chat_id) {
 	char *url = malloc(API_REQUEST_LEN);
 
 	snprintf(url, API_REQUEST_LEN, "%ssendMessage?text=%s&chat_id=%ld&parse_mode=markdown", base_url, text, chat_id);
-	struct memory_buffer_t mb = send_get_request(url);
+	struct memory_buffer mb = send_get_request(url);
 	free(url);
 
 	response = json_tokener_parse(mb.memory);
@@ -55,7 +55,7 @@ struct json_object *tg_get_updates(int timeout, int offset) {
 		free(str_off);
 	}
 
-	struct memory_buffer_t mb = send_get_request(url);
+	struct memory_buffer mb = send_get_request(url);
 	free(url);
 
 	response = json_tokener_parse(mb.memory);
