@@ -26,8 +26,8 @@
 
 
 struct json_object *tg_get_updates(int, int);
-
 struct json_object *tg_send_message(char *, int64_t);
+struct json_object *tg_send_document(char *, char *, int64_t);
 
 void init_engine(const char *);
 
