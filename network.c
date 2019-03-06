@@ -30,7 +30,7 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, v
 	char *ptr = realloc(mem->memory, mem->size + realsize + 1);
 
 	if (ptr == NULL) {
-		puts("not enough memory (realloc returned NULL)");
+		fputs("not enough memory (realloc returned NULL)", stderr);
 		return 0;
 	}
 
