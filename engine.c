@@ -48,22 +48,22 @@ struct json_object *make_request(const char *url, int type, ...) {
 	struct memory_buffer mb;
 
 	switch (type) {
-	case GET:
-		mb = send_get_request(url);
-		break;
+		case GET:
+			mb = send_get_request(url);
+			break;
 
-	case POST: {
-		char *argtmp[2];
+		case POST: {
+			char *argtmp[2];
 
-		va_list argptr;
-		va_start(argptr, type);
+			va_list argptr;
+			va_start(argptr, type);
 
-		for (int i = 0; i < 2; i++)
-			argtmp[i] = va_arg(argptr, char *);
+			for (int i = 0; i < 2; i++)
+				argtmp[i] = va_arg(argptr, char *);
 
-		va_end(argptr);
-		mb = send_post_request(url, argtmp[0], argtmp[1]);
-		break;
+			va_end(argptr);
+			mb = send_post_request(url, argtmp[0], argtmp[1]);
+			break;
 		}
 	}
 
