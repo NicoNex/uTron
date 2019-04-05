@@ -140,10 +140,10 @@ static void *garbage_collector() {
 	int64_t idtmp;
 
 	for (;;) {
-		print_session_list_len(); // DEBUG
 		pthread_mutex_lock(&mutex);
 		current_ptr = &session_list;
 		current_time = time(NULL);
+		// print_session_list_len(); // DEBUG
 
 		while (current_ptr) {
 			if (current_time - current_ptr->timestamp >= 3600) {
@@ -188,7 +188,6 @@ static void *garbage_collector() {
 		}
 
 		pthread_mutex_unlock(&mutex);
-		print_session_list_len();
 		sleep(60);
 	}
 }
@@ -211,7 +210,6 @@ void run_dispatcher(const char *token) {
 	pthread_detach(gcid);
 
 	for (;;) {
-		print_session_list_len();
 
 		if (!is_first_run)
 			response = tg_get_updates(20, last_update_id+1);
