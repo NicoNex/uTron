@@ -146,7 +146,7 @@ static void *garbage_collector() {
 		current_time = time(NULL);
 
 		while (current_ptr) {
-			if (current_time - current_ptr->timestamp >= /*3600*/ 5) {
+			if (current_time - current_ptr->timestamp >= 3600) {
 				idtmp = current_ptr->chat_id;
 
 				struct session *ssntmp = session_cache[hash_code(idtmp)];				
@@ -154,7 +154,7 @@ static void *garbage_collector() {
 					session_cache[hash_code(idtmp)] = NULL;
 
 
-				if (current_ptr->prev) {
+				if (current_ptr->prev != NULL) {
 					current_ptr->prev->next = current_ptr->next;
 					current_ptr->next->prev = current_ptr->prev;
 					free(current_ptr->bot_ptr);
@@ -175,6 +175,7 @@ static void *garbage_collector() {
 					}
 
 					else {
+						free(session_list.bot_ptr);
 						session_list.chat_id = 0;
 						session_list.bot_ptr = NULL;
 						session_list.next = NULL;
@@ -188,7 +189,7 @@ static void *garbage_collector() {
 
 		pthread_mutex_unlock(&mutex);
 		print_session_list_len();
-		sleep(5);
+		sleep(60);
 	}
 }
 
@@ -205,9 +206,9 @@ void run_dispatcher(const char *token) {
 	pthread_mutex_init(&mutex, NULL);
 	init_engine(token);
 
-	// pthread_t gcid;
-	// pthread_create(&gcid, NULL, garbage_collector, NULL);
-	// pthread_detach(gcid);
+	pthread_t gcid;
+	pthread_create(&gcid, NULL, garbage_collector, NULL);
+	pthread_detach(gcid);
 
 	for (;;) {
 		print_session_list_len();
