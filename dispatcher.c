@@ -86,26 +86,30 @@ static int populate_session(struct session *session_ptr, int64_t chat_id) {
 
 static struct session *get_session_ptr(int64_t chat_id) {
 	struct session *session_ptr = session_cache[hash_code(chat_id)];
+	static _Bool is_first_run = 0;
 
 	if (session_ptr != NULL && session_ptr->chat_id == chat_id)
 		return session_ptr;
 
 	session_ptr = &session_list;
 	
-	for (int i = 0; session_ptr->chat_id != chat_id; i++) {
+	while (session_ptr->chat_id != chat_id) {
 		if (session_ptr->next != NULL)
 			session_ptr = session_ptr->next;
 
 		else {
-			if (i > 0) {
+			if (is_first_run) {
+				populate_session(session_ptr, chat_id);
+				is_first_run = 1;
+			}
+
+
+			else {
 				session_ptr->next = malloc(sizeof(struct session));
 				session_ptr->next->prev = session_ptr;
 				populate_session(session_ptr->next, chat_id);
 				session_ptr = session_ptr->next;
 			}
-
-			else
-				populate_session(session_ptr, chat_id);
 
 			break;
 		}
@@ -120,13 +124,11 @@ void print_session_list_len(void) {
 	int i = 0;
 	struct session *session_ptr = &session_list;
 
-	if (session_ptr->chat_id)
+	if (session_ptr->chat_id) 
 		i++;
 
-	for (; session_ptr->next; i++) {
+	for (; session_ptr->next; ++i)
 		session_ptr = session_ptr->next;
-		puts("sas");
-	}
 
 	printf("list len: %d\n", i);
 }
@@ -154,6 +156,7 @@ static void *garbage_collector() {
 
 				if (current_ptr->prev) {
 					current_ptr->prev->next = current_ptr->next;
+					current_ptr->next->prev = current_ptr->prev;
 					free(current_ptr->bot_ptr);
 					free(current_ptr);
 				}
