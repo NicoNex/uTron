@@ -27,9 +27,7 @@
 
 
 #define CACHE_LEN 20
-
-
-#define HASH_CODE(c) c % CACHE_LEN
+#define HASH(id) id % CACHE_LEN
 
 
 struct session {
@@ -37,23 +35,17 @@ struct session {
 	time_t timestamp;
 	struct bot *bot_ptr;
 
-	struct session *prev;
 	struct session *next;
 };
 
 
-struct session session_list = {.chat_id = 0, .bot_ptr = NULL, .next = NULL, .prev = NULL};
+struct session *session_list = NULL;
 struct session *session_cache[CACHE_LEN] = {NULL};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-static int hash_code(int64_t chat_id) {
-	return chat_id % CACHE_LEN;
-}
-
-
 static void update_cache(int64_t chat_id, struct session *session_ptr) {
-	session_cache[hash_code(chat_id)] = session_ptr;
+	session_cache[HASH(chat_id)] = session_ptr;
 }
 
 
@@ -69,124 +61,79 @@ static _Bool is_response_ok(const struct json_object *response) {
 }
 
 
-static int populate_session(struct session *session_ptr, int64_t chat_id) {
-	if (session_ptr != NULL) {
-		session_ptr->chat_id = chat_id;
-		session_ptr->bot_ptr = new_bot(chat_id);
-		session_ptr->next = NULL;
-		return 0;
-	}
-
-	else {
-		fputs("populate_session: not enough memory (malloc returned NULL)\n", stderr);
-		return 1;
-	}
+static void push(int64_t chat_id) {
+	struct session *tmp = session_list; 
+	session_list = malloc(sizeof(struct session));
+	session_list->chat_id = chat_id;
+	session_list->bot_ptr = new_bot(chat_id);
+	session_list->next = tmp;
 }
 
 
-static struct session *get_session_ptr(int64_t chat_id) {
-	struct session *session_ptr = session_cache[hash_code(chat_id)];
-	static _Bool is_first_run = 0;
+static struct session *get_session_ptr(const int64_t chat_id) {
+	struct session *tmp = session_cache[HASH(chat_id)];
 
-	if (session_ptr != NULL && session_ptr->chat_id == chat_id)
-		return session_ptr;
+	if (tmp && tmp->chat_id == chat_id)
+		return tmp;
 
-	session_ptr = &session_list;
-	
-	while (session_ptr->chat_id != chat_id) {
-		if (session_ptr->next != NULL)
-			session_ptr = session_ptr->next;
+	tmp = session_list;
 
-		else {
-			if (is_first_run) {
-				populate_session(session_ptr, chat_id);
-				is_first_run = 1;
-			}
+	if (!tmp) {
+		push(chat_id);
+		tmp = session_list;
+		goto end;
+	}
 
-
-			else {
-				session_ptr->next = malloc(sizeof(struct session));
-				session_ptr->next->prev = session_ptr;
-				populate_session(session_ptr->next, chat_id);
-				session_ptr = session_ptr->next;
-			}
-
+	while (tmp->chat_id != chat_id) {
+		if (!tmp->next) {
+			push(chat_id);
+			tmp = session_list;
 			break;
 		}
+
+		tmp = tmp->next;
 	}
 
-	update_cache(chat_id, session_ptr);
-	return session_ptr;
+	end:
+		update_cache(chat_id, tmp);
+		return tmp;
 }
 
 
-void print_session_list_len(void) {
-	int i = 0;
-	struct session *session_ptr = &session_list;
+uint session_list_len(void) {
+	uint len = 0;
+	struct session *tmp = session_list;
 
-	if (session_ptr->chat_id) 
-		i++;
+	for (; tmp; ++len)
+		tmp = tmp->next;
 
-	for (; session_ptr->next; ++i)
-		session_ptr = session_ptr->next;
-
-	printf("list len: %d\n", i);
+	// printf("list len: %lu\n", len);
+	return len;
 }
 
 
 static void *garbage_collector() {
-	struct session *current_ptr;
+	struct session *tmp;
 	time_t current_time;
 	int64_t idtmp;
 
+
 	for (;;) {
 		pthread_mutex_lock(&mutex);
-		current_ptr = &session_list;
+		tmp = session_list;
 		current_time = time(NULL);
-		// print_session_list_len(); // DEBUG
+		struct session *prev = NULL;
 
-		while (current_ptr) {
-			if (current_time - current_ptr->timestamp >= 3600) {
-				idtmp = current_ptr->chat_id;
-
-				struct session *ssntmp = session_cache[hash_code(idtmp)];				
-				if (ssntmp && ssntmp->chat_id == idtmp)
-					session_cache[hash_code(idtmp)] = NULL;
-
-
-				if (current_ptr->prev != NULL) {
-					current_ptr->prev->next = current_ptr->next;
-					current_ptr->next->prev = current_ptr->prev;
-					free(current_ptr->bot_ptr);
-					free(current_ptr);
-				}
-
-				else {
-					if (current_ptr->next) {
-						struct session *tmp_ptr;
-						free(current_ptr->bot_ptr);
-
-						tmp_ptr = current_ptr->next;
-						current_ptr->chat_id = current_ptr->next->chat_id;
-						current_ptr->bot_ptr = current_ptr->next->bot_ptr;
-						current_ptr->timestamp = current_ptr->next->timestamp;
-						current_ptr->next = current_ptr->next->next;
-						free(tmp_ptr);
-					}
-
-					else {
-						free(session_list.bot_ptr);
-						session_list.chat_id = 0;
-						session_list.bot_ptr = NULL;
-						session_list.next = NULL;
-						session_list.prev = NULL;
-					}
-				}
+		while (tmp) {
+			if (current_time - tmp->timestamp >= 3600) {
+				prev ? (prev->next = tmp->next) : (session_list = tmp->next);
+				free(tmp->bot_ptr);
+				free(tmp);
 			}
 
-			current_ptr = current_ptr->next;
+			prev = tmp;
+			tmp = tmp->next;
 		}
-
 		pthread_mutex_unlock(&mutex);
 		sleep(60);
 	}
@@ -229,26 +176,13 @@ void run_dispatcher(const char *token) {
 
 				update = json_object_array_get_idx(updates, i);
 
-				if (!json_object_object_get_ex(update, "message", &message))
+				if (!(json_object_object_get_ex(update, "message", &message)
+						&& json_object_object_get_ex(message, "chat", &chat)
+						&& json_object_object_get_ex(chat, "id", &chat_id)
+						&& json_object_object_get_ex(update, "update_id", &update_id))) {
+
 					continue;
-
-				if (!json_object_object_get_ex(message, "chat", &chat))
-					continue;
-
-				if (!json_object_object_get_ex(chat, "id", &chat_id))
-					continue;
-
-				if (!json_object_object_get_ex(update, "update_id", &update_id))
-					continue;
-
-				// if (!json_object_object_get_ex(update, "message", &message)
-				// 		&& !json_object_object_get_ex(message, "chat", &chat)
-				// 		&& !json_object_object_get_ex(chat, "id", &chat_id)
-				// 		&& !json_object_object_get_ex(update, "update_id", &update_id)) {
-
-				// 	continue;
-				// }
-
+				}
 
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
