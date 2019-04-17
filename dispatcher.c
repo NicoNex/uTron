@@ -61,7 +61,7 @@ static _Bool is_response_ok(const struct json_object *response) {
 }
 
 
-static void push(int64_t chat_id) {
+static void push_session(int64_t chat_id) {
 	struct session *tmp = session_list; 
 	session_list = malloc(sizeof(struct session));
 	session_list->chat_id = chat_id;
@@ -79,14 +79,14 @@ static struct session *get_session_ptr(const int64_t chat_id) {
 	tmp = session_list;
 
 	if (!tmp) {
-		push(chat_id);
+		push_session(chat_id);
 		tmp = session_list;
 		goto end;
 	}
 
 	while (tmp->chat_id != chat_id) {
 		if (!tmp->next) {
-			push(chat_id);
+			push_session(chat_id);
 			tmp = session_list;
 			break;
 		}
