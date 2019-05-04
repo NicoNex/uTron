@@ -20,6 +20,8 @@
 #define BOT_H_
 
 
+#include <json_object.h>
+
 struct bot;
 
 struct bot_update_arg {
