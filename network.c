@@ -52,7 +52,7 @@ struct memory_buffer send_get_request(const char *url) {
 	buffer.size = 0;
 
 	curl_global_init(CURL_GLOBAL_ALL);
-	
+
 	curl = curl_easy_init();
 
 	if (curl) {
@@ -78,8 +78,6 @@ struct memory_buffer send_get_request(const char *url) {
 struct memory_buffer send_post_request(const char *url, const char *filepath, const char *filetype) {
 	CURL *curl;
 	CURLcode result;
-
-	FILE *fp;
 
 	curl_mime *form = NULL;
 	curl_mimepart *field = NULL;

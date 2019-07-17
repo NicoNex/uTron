@@ -54,7 +54,7 @@ static _Bool is_response_ok(const struct json_object *response) {
 
 	if (!json_object_object_get_ex(response, "ok", &ok)
 			&& json_object_get_type(ok) != json_type_boolean)
-		
+
 		return 0;
 
 	return json_object_get_boolean(ok);
@@ -62,7 +62,7 @@ static _Bool is_response_ok(const struct json_object *response) {
 
 
 static void push_session(int64_t chat_id) {
-	struct session *tmp = session_list; 
+	struct session *tmp = session_list;
 	session_list = malloc(sizeof(struct session));
 	session_list->chat_id = chat_id;
 	session_list->bot_ptr = new_bot(chat_id);
@@ -115,7 +115,6 @@ uint session_list_len(void) {
 static void *garbage_collector() {
 	struct session *tmp;
 	time_t current_time;
-	int64_t idtmp;
 
 
 	for (;;) {
@@ -142,10 +141,10 @@ static void *garbage_collector() {
 
 void run_dispatcher(const char *token) {
 	_Bool is_first_run = 0;
-	
+
 	int last_update_id = 0;
 	int updates_length;
-	
+
 	struct json_object *response;
 	struct json_object *updates;
 
