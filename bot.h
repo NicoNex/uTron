@@ -24,14 +24,9 @@
 
 struct bot;
 
-struct bot_update_arg {
-	struct bot *bot_ptr;
-	struct json_object *update;
-};
 
-
-struct bot *new_bot(int64_t);
-void *update_bot(void*);
+struct bot *new_bot(int64_t chat_id);
+void *update_bot(struct bot *bot, struct json_object *update);
 
 
 #endif // BOT_H_

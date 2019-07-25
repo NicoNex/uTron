@@ -17,9 +17,9 @@
  */
 
 
+#include <omp.h>
 #include <time.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #include "bot.h"
 #include "engine.h"
@@ -41,7 +41,7 @@ struct session {
 
 struct session *session_list = NULL;
 struct session *session_cache[CACHE_LEN] = {NULL};
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+omp_lock_t lock;
 
 
 static void update_cache(int64_t chat_id, struct session *session_ptr) {
@@ -107,7 +107,6 @@ uint session_list_len(void) {
 	for (; tmp; ++len)
 		tmp = tmp->next;
 
-	// printf("list len: %lu\n", len);
 	return len;
 }
 
@@ -118,7 +117,7 @@ static void *garbage_collector() {
 
 
 	for (;;) {
-		pthread_mutex_lock(&mutex);
+		omp_set_lock(&lock);
 		tmp = session_list;
 		current_time = time(NULL);
 		struct session *prev = NULL;
@@ -133,7 +132,7 @@ static void *garbage_collector() {
 			prev = tmp;
 			tmp = tmp->next;
 		}
-		pthread_mutex_unlock(&mutex);
+		omp_unset_lock(&lock);
 		sleep(60);
 	}
 }
@@ -148,12 +147,8 @@ void run_dispatcher(const char *token) {
 	struct json_object *response;
 	struct json_object *updates;
 
-	pthread_mutex_init(&mutex, NULL);
+	omp_init_lock(&lock);
 	init_engine(token);
-
-	pthread_t gcid;
-	pthread_create(&gcid, NULL, garbage_collector, NULL);
-	pthread_detach(gcid);
 
 	for (;;) {
 
@@ -169,6 +164,8 @@ void run_dispatcher(const char *token) {
 
 			updates_length = json_object_array_length(updates);
 
+			omp_set_lock(&lock);
+			#pragma omp parallel for
 			for (int i = 0; i < updates_length; i++) {
 				int64_t current_chat_id;
 				struct json_object *update, *message, *chat, *chat_id, *update_id;
@@ -186,22 +183,18 @@ void run_dispatcher(const char *token) {
 				last_update_id = json_object_get_int(update_id);
 				current_chat_id = json_object_get_int64(chat_id);
 
-				pthread_mutex_lock(&mutex);
 				struct session *session_ptr = get_session_ptr(current_chat_id);
 				if (session_ptr && !is_first_run) {
 					session_ptr->timestamp = time(NULL);
 
-					struct bot_update_arg uarg = {
-						.bot_ptr = session_ptr->bot_ptr,
-						.update = update
-					};
-
-					pthread_t thread_id;
-					pthread_create(&thread_id, NULL, update_bot, (void *)&uarg);
-					pthread_detach(thread_id);
+					#pragma omp parallel
+					{
+						struct bot *bot = session_ptr->bot_ptr;
+						update_bot(bot, update);
+					}
 				}
-				pthread_mutex_unlock(&mutex);
 			}
+			omp_unset_lock(&lock);
 			is_first_run = 0;
 		}
 	}
