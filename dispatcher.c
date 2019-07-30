@@ -165,7 +165,7 @@ void run_dispatcher(const char *token) {
 			updates_length = json_object_array_length(updates);
 
 			omp_set_lock(&lock);
-			#pragma omp parallel for
+			#pragma omp parallel for schedule(static)
 			for (int i = 0; i < updates_length; i++) {
 				int64_t current_chat_id;
 				struct json_object *update, *message, *chat, *chat_id, *update_id;
@@ -186,14 +186,11 @@ void run_dispatcher(const char *token) {
 				struct session *session_ptr = get_session_ptr(current_chat_id);
 				if (session_ptr && !is_first_run) {
 					session_ptr->timestamp = time(NULL);
-
-					#pragma omp parallel
-					{
-						struct bot *bot = session_ptr->bot_ptr;
-						update_bot(bot, update);
-					}
+					struct bot *bot = session_ptr->bot_ptr;
+					update_bot(bot, update);
 				}
 			}
+			json_object_put(response);
 			omp_unset_lock(&lock);
 			is_first_run = 0;
 		}
