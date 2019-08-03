@@ -26,7 +26,7 @@ struct bot;
 
 
 struct bot *new_bot(int64_t chat_id);
-void *update_bot(struct bot *bot, struct json_object *update);
+void update_bot(struct bot *bot, struct json_object *update);
 
 
 #endif // BOT_H_
