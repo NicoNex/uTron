@@ -25,11 +25,20 @@
 #include <json_object.h>
 
 
-struct json_object *tg_get_updates(int, int);
-struct json_object *tg_send_message(char *, int64_t);
-struct json_object *tg_send_document(char *, char *, int64_t);
+enum send_message_options {
+	PARSE_MARKDOWN = 1 << 0,
+	PARSE_HTML = 1 << 1,
+	DISABLE_WEB_PAGE_PREVIEW = 1 << 2,
+	DISABLE_NOTIFICATION = 1 << 3
+};
 
-void init_engine(const char *);
+
+struct json_object *tg_get_updates(int timeout, int offset);
+struct json_object *tg_send_message(char *text, int64_t chat_id);
+struct json_object *tg_send_message_opts(char *text, int64_t chat_id, int options);
+struct json_object *tg_send_document(char *filepath, char *caption, int64_t chat_id);
+
+void init_engine(const char *token);
 
 
 #endif // ENGINE_H_

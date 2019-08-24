@@ -96,9 +96,32 @@ struct json_object *tg_send_message(char *text, int64_t chat_id) {
 	struct json_object *response;
 	char url[API_REQUEST_LEN];
 
-	snprintf(url, API_REQUEST_LEN, "%ssendMessage?text=%s&chat_id=%ld&parse_mode=markdown", base_url, text, chat_id);
+	snprintf(url, API_REQUEST_LEN, "%ssendMessage?text=%s&chat_id=%ld", base_url, text, chat_id);
 	response = make_request(url, GET);
 
+	return response;
+}
+
+
+struct json_object *tg_send_message_opts(char *text, int64_t chat_id, int options) {
+	struct json_object *response;
+	char url[API_REQUEST_LEN];
+
+	snprintf(url, API_REQUEST_LEN, "%ssendMessage?text=%s&chat_id=%ld", base_url, text, chat_id);
+
+	if (options & PARSE_MARKDOWN)
+		strncat(url, "&parse_mode=markdown", 32);
+
+	if (options & PARSE_HTML)
+		strncat(url, "&parse_mode=html", 32);
+
+	if (options & DISABLE_WEB_PAGE_PREVIEW)
+		strncat(url, "&disable_web_page_preview=true", 32);
+
+	if (options & DISABLE_NOTIFICATION)
+		strncat(url, "&disable_notification=true", 32);
+
+	response = make_request(url, GET);
 	return response;
 }
 
