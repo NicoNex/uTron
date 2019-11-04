@@ -21,11 +21,9 @@
 #include "bot.h"
 
 struct node *new_node(int64_t id, struct bot *bot) {
-	struct node *node = malloc(sizeof(struct node));
+	struct node *node = calloc(1, sizeof(struct node));
 	node->id = id;
 	node->bot = bot;
-	node->left = NULL;
-	node->right = NULL;
 	return node;
 }
 

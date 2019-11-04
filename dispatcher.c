@@ -16,12 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#include <omp.h>
-#include <time.h>
-#include <unistd.h>
-#include <stdlib.h>
-
 #include "bot.h"
 #include "btree.h"
 #include "engine.h"
@@ -58,9 +52,7 @@ void run_dispatcher(const char *token) {
 			for (int i = 0; i < updates_length; i++) {
 				int64_t current_chat_id;
 				struct json_object *update, *message, *chat, *chat_id, *update_id;
-
 				update = json_object_array_get_idx(updates, i);
-
 				if (!(json_object_object_get_ex(update, "message", &message)
 						&& json_object_object_get_ex(message, "chat", &chat)
 						&& json_object_object_get_ex(chat, "id", &chat_id)
