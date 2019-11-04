@@ -20,6 +20,7 @@
 #include <omp.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "bot.h"
 #include "engine.h"

@@ -16,7 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
+#include <json.h>
+
 #include "engine.h"
 #include "network.h"
 
@@ -26,7 +31,7 @@
 
 
 enum request_type {
-	GET, 
+	GET,
 	POST
 };
 
@@ -129,7 +134,7 @@ struct json_object *tg_send_message_opts(char *text, int64_t chat_id, int option
 struct json_object *tg_send_document(char *filepath, char *caption, int64_t chat_id) {
 	struct json_object *response;
 	char url[API_REQUEST_LEN];
-	
+
 	snprintf(url, API_REQUEST_LEN, "%ssendDocument?chat_id=%ld&caption=%s&parse_mode=markdown", base_url, chat_id, caption);
 	response = make_request(url, POST, filepath, "document");
 

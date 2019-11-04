@@ -16,9 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DISPATCHER_H_
-#define DISPATCHER_H_
+#ifndef UTRON_H_
+#define UTRON_H_
 
-void run_dispatcher(const char *token);
+#include "bot.h"
+#include "engine.h"
+#include "dispatcher.h"
 
-#endif // DISPATCHER_H_
+#endif // UTRON_H_

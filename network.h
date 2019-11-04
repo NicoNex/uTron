@@ -19,19 +19,12 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-
 struct memory_buffer {
 	char *memory;
 	size_t size;
 };
 
-
-struct memory_buffer send_get_request(const char *);
-struct memory_buffer send_post_request(const char *, const char *, const char *);
-
+struct memory_buffer send_get_request(const char *url);
+struct memory_buffer send_post_request(const char *url, const char *filepath, const char *filetype);
 
 #endif // NETWORK_H_

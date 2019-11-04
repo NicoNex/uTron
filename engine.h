@@ -19,11 +19,8 @@
 #ifndef ENGINE_H_
 #define ENGINE_H_
 
-#include <stdio.h>
 #include <stdint.h>
-#include <json.h>
 #include <json_object.h>
-
 
 enum send_message_options {
 	PARSE_MARKDOWN = 1 << 0,
@@ -31,7 +28,6 @@ enum send_message_options {
 	DISABLE_WEB_PAGE_PREVIEW = 1 << 2,
 	DISABLE_NOTIFICATION = 1 << 3
 };
-
 
 struct json_object *tg_get_updates(int timeout, int offset);
 struct json_object *tg_send_message(char *text, int64_t chat_id);
