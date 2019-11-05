@@ -19,14 +19,19 @@
 #ifndef BOT_H_
 #define BOT_H_
 
-
 #include <json_object.h>
 
+// This struct must be implemented by the user.
+// This is the struct containing the context of the bot.
 struct bot;
 
-
+// This function must be implemented by the user.
+// It is the function the dispatcher calls when a new user writes to the bot.
 struct bot *new_bot(int64_t chat_id);
-void update_bot(struct bot *bot, struct json_object *update);
 
+// This function must be implemented by the user.
+// It gets called every time the dispatcher receives an update
+// that belongs to the relative 'bot' instance.
+void update_bot(struct bot *bot, struct json_object *update);
 
 #endif // BOT_H_

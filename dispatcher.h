@@ -19,6 +19,9 @@
 #ifndef DISPATCHER_H_
 #define DISPATCHER_H_
 
+// This function is utron entry point, it starts the polling loop,
+// makes new instances for each open chat with a user and calls
+// the update_bot function upon receiving any update from Telegram.
 void run_dispatcher(const char *token);
 
 #endif // DISPATCHER_H_

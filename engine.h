@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <json_object.h>
 
+// The availabe options for the tg_send_message_opts function.
 enum send_message_options {
 	PARSE_MARKDOWN = 1 << 0,
 	PARSE_HTML = 1 << 1,
@@ -29,9 +30,17 @@ enum send_message_options {
 	DISABLE_NOTIFICATION = 1 << 3
 };
 
+// Use this function to get all updates from Telegram.
 struct json_object *tg_get_updates(int timeout, int offset);
+
+// This function sends text messages to a specified chat id.
 struct json_object *tg_send_message(char *text, int64_t chat_id);
+
+// Similar to tg_send_message but you can specify some additional options defined in
+// send_message_options.
 struct json_object *tg_send_message_opts(char *text, int64_t chat_id, int options);
+
+// Use this function to send a document to the specified chat id.
 struct json_object *tg_send_document(char *filepath, char *caption, int64_t chat_id);
 
 void init_engine(const char *token);

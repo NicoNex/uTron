@@ -19,12 +19,16 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 
+// This struct contains the data returned by curl.
 struct memory_buffer {
 	char *memory;
 	size_t size;
 };
 
+// This function makes a HTTP request to the specified url with the GET method.
 struct memory_buffer send_get_request(const char *url);
+
+// This function makes a HTTP request including files to the specified url with POST method.
 struct memory_buffer send_post_request(const char *url, const char *filepath, const char *filetype);
 
 #endif // NETWORK_H_

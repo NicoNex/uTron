@@ -21,6 +21,7 @@
 
 #include "bot.h"
 
+// This struct defines each node in the binary search tree.
 struct node {
 	int64_t id;
 	struct bot *bot;
@@ -30,10 +31,19 @@ struct node {
 
 typedef struct node *btree;
 
+// This function allocates a new node and returns its address.
 struct node *new_node(int64_t id, struct bot *bot);
-void add_node(btree *root, struct node *node);
-struct node *get_node(btree root, int64_t id);
-void del_node(btree *rootaddr, int64_t id);
 
+// This function adds a given node to a binary tree given its root
+// in input.
+void add_node(btree *root, struct node *node);
+
+// Use this function to retrieve the node in the binary tree that has
+// the corresponding id specified in input.
+struct node *get_node(btree root, int64_t id);
+
+// Use this function to delete the node from the binary tree that has
+// the corresponding id specified in input.
+void del_node(btree *rootaddr, int64_t id);
 
 #endif // BTREE_H_
