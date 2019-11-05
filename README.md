@@ -14,7 +14,7 @@ struct bot {
 };
 
 struct bot *new_bot(int64_t chat_id) {
-    struct bot \*b = malloc(sizeof(struct bot));
+    struct bot *b = malloc(sizeof(struct bot));
     b->chat_id = chat_id;
     return b;
 }
