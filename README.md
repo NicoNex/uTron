@@ -7,6 +7,7 @@ Engine for Telegram bot written in pure c.
 A very simple implementation is:
 
 ```c
+#include <stdlib.h>
 #include "utron/utron.h"
 
 struct bot {
